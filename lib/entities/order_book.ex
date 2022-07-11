@@ -1,3 +1,3 @@
 defmodule OrderBook.Entities.OrderBook do
-  defstruct [:buy , :sell]
+  defstruct [:buy, :sell]
 end
