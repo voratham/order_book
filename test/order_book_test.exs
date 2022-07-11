@@ -50,4 +50,30 @@ defmodule OrderBookTest do
                ~s({"buy":[{"price":100.01,"volume":1.6},{"price":91.33,"volume":1.8},{"price":90.15,"volume":0.15},{"price":89.394,"volume":4.3}],"sell":[{"price":100.013,"volume":2.2},{"price":100.15,"volume":3.8}]})
              )
   end
+
+  test "should return result correctly with input 5" do
+    input =
+      '{"orders":[{"command":"sell","price":100.003,"amount":10},{"command":"buy","price":90.394,"amount":10},{"command":"buy","price":90.394,"amount":10},{"command":"buy","price":100.15,"amount":10}]}'
+
+    assert OrderBook.main(input) ==
+             convertJsonToStruct(~s({"buy":[{"price":90.394,"volume":20}],"sell":[]}))
+  end
+
+  test "should return result correctly with input 6" do
+    input =
+      '{"orders":[{"command":"buy","price":100.003,"amount":10},{"command":"sell","price":90.394,"amount":10},{"command":"sell","price":90.394,"amount":10},{"command":"sell","price":100.15,"amount":10}]}'
+
+    assert OrderBook.main(input) ==
+             convertJsonToStruct(
+               ~s({"buy":[],"sell":[{"price":90.394,"volume":10},{"price":100.15,"volume":10}]})
+             )
+  end
+
+  test "should return result correctly with input 7" do
+    input =
+      '{"orders":[{"command":"sell","price":100.003,"amount":30},{"command":"buy","price":90.394,"amount":10},{"command":"buy","price":90.394,"amount":10},{"command":"buy","price":100.15,"amount":10}]}'
+
+    assert OrderBook.main(input) ==
+             convertJsonToStruct(~s({"buy":[{"price":90.394,"volume":20}],"sell":[{"price":100.003,"volume":20}]}))
+  end
 end

@@ -11,19 +11,13 @@ defmodule OrderBook do
   def buy(state, order) do
     order_found = state.sell |> Enum.find(fn val -> val.price == order["price"] end)
 
-  order_duplicate_price_found =
+    order_duplicate_price_found =
       state.sell |> Enum.find(fn val -> val.price == order["price"] end)
 
-  order_ready_buy_found = state.buy |> Enum.find(fn val -> val.price >= order["price"] end)
+    order_ready_buy_found = state.buy |> Enum.find(fn val -> val.price >= order["price"] end)
 
-  {ok, list} =
+    {ok, list} =
       cond do
-        order_found == nil and order_duplicate_price_found != nil and
-            !Enum.empty?(state.sell) ->
-          calculated_volume = order_duplicate_price_found.volume + order["amount"]
-          new_order_item = %OrderItem{order_duplicate_price_found | volume: calculated_volume}
-          [new_order_item | state.sell] |> Enum.uniq_by(fn o -> o.price end)
-
         order_found == nil and order_duplicate_price_found == nil and
           order_ready_buy_found == nil and
             Enum.empty?(state.sell) ->
@@ -38,9 +32,9 @@ defmodule OrderBook do
       end
 
     if(ok == true) do
-    %OrderBook{state | sell: list |> Enum.sort_by(fn o -> o.price end, :asc)}
+      %OrderBook{state | sell: list |> Enum.sort_by(fn o -> o.price end, :asc)}
     else
-      calculate_volume = (order_ready_buy_found.volume - order["amount"]) |> Float.round(3)
+      calculate_volume = ((order_ready_buy_found.volume - order["amount"]) / 1) |> Float.round(3)
 
       if calculate_volume <= 0 do
         new_state = %OrderBook{
@@ -51,7 +45,14 @@ defmodule OrderBook do
               |> Enum.uniq_by(fn o -> o.price end)
         }
 
-        buy(new_state, %{"price" => order["price"], "amount" => calculate_volume * -1})
+        IO.puts("ok before recursive 🔥")
+
+        if calculate_volume == 0 do
+          new_state
+        else
+          update_order_volume = %{"price" => order["price"], "amount" => calculate_volume * -1}
+          buy(new_state, update_order_volume)
+        end
       else
         new_order_item = %OrderItem{order_ready_buy_found | volume: calculate_volume}
         %OrderBook{state | buy: [new_order_item | state.buy] |> Enum.uniq_by(fn o -> o.price end)}
@@ -62,12 +63,12 @@ defmodule OrderBook do
   def sell(state, order) do
     order_found = state.sell |> Enum.find(fn val -> val.price == order["price"] end)
 
-  order_duplicate_price_found =
+    order_duplicate_price_found =
       state.buy |> Enum.find(fn val -> val.price == order["price"] end)
 
-  order_ready_sell_found = state.sell |> Enum.find(fn val -> val.price <= order["price"] end)
+    order_ready_sell_found = state.sell |> Enum.find(fn val -> val.price <= order["price"] end)
 
-  {ok, list} =
+    {ok, list} =
       cond do
         order_found == nil and order_duplicate_price_found != nil and
             !Enum.empty?(state.buy) ->
@@ -92,7 +93,7 @@ defmodule OrderBook do
     if ok == true do
       %OrderBook{state | buy: list |> Enum.sort_by(fn o -> o.price end, :desc)}
     else
-      calculate_volume = (order_ready_sell_found.volume - order["amount"]) |> Float.round(3)
+      calculate_volume = ((order_ready_sell_found.volume - order["amount"]) / 1) |> Float.round(3)
 
       if calculate_volume <= 0 do
         new_state = %OrderBook{
@@ -103,8 +104,14 @@ defmodule OrderBook do
               |> Enum.uniq_by(fn o -> o.price end)
         }
 
-        update_order_volume = %{"price" => order["price"], "amount" => calculate_volume * -1}
-        sell(new_state, update_order_volume)
+        IO.puts("ok before recursive 🔥 #{calculate_volume}")
+
+        if calculate_volume == 0 do
+          new_state
+        else
+          update_order_volume = %{"price" => order["price"], "amount" => calculate_volume * -1}
+          sell(new_state, update_order_volume)
+        end
       else
         new_order_item = %OrderItem{order_ready_sell_found | volume: calculate_volume}
 
