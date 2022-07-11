@@ -1,30 +1,23 @@
 defmodule OrderBook do
-  alias OrderBook.Entities.{OrderItem, OrderBook}
+  alias OrderBook.Entities.{OrderItem, OrderBook, OrderRequest}
 
-  def trigger(state, order) do
-    cond do
-      order["command"] == "sell" -> buy(state, order)
-      order["command"] == "buy" -> sell(state, order)
-    end
+  defp find_order_by_price(list, order) do
+    Enum.find(list, fn val -> val.price == order["price"] end)
   end
 
-  def buy(state, order) do
-    order_found = state.sell |> Enum.find(fn val -> val.price == order["price"] end)
+  defp calculate_volume_by_order_matching(order_matching_price, order_request) do
+    ((order_matching_price.volume - order_request["amount"]) / 1) |> Float.round(3)
+  end
 
-    order_duplicate_price_found =
-      state.sell |> Enum.find(fn val -> val.price == order["price"] end)
-
+  defp buy(state, order) do
+    order_found = state.sell |> find_order_by_price(order)
+    order_duplicate_price_found = state.sell |> find_order_by_price(order)
     order_ready_buy_found = state.buy |> Enum.find(fn val -> val.price >= order["price"] end)
 
     {ok, list} =
       cond do
         order_found == nil and order_duplicate_price_found == nil and
-          order_ready_buy_found == nil and
-            Enum.empty?(state.sell) ->
-          {true, [%OrderItem{price: order["price"], volume: order["amount"]} | state.sell]}
-
-        order_found == nil and order_duplicate_price_found == nil and order_ready_buy_found == nil and
-            !Enum.empty?(state.sell) ->
+          order_ready_buy_found == nil and (Enum.empty?(state.sell) or !Enum.empty?(state.sell)) ->
           {true, [%OrderItem{price: order["price"], volume: order["amount"]} | state.sell]}
 
         true ->
@@ -34,7 +27,7 @@ defmodule OrderBook do
     if(ok == true) do
       %OrderBook{state | sell: list |> Enum.sort_by(fn o -> o.price end, :asc)}
     else
-      calculate_volume = ((order_ready_buy_found.volume - order["amount"]) / 1) |> Float.round(3)
+      calculate_volume = calculate_volume_by_order_matching(order_ready_buy_found, order)
 
       if calculate_volume <= 0 do
         new_state = %OrderBook{
@@ -58,12 +51,9 @@ defmodule OrderBook do
     end
   end
 
-  def sell(state, order) do
-    order_found = state.sell |> Enum.find(fn val -> val.price == order["price"] end)
-
-    order_duplicate_price_found =
-      state.buy |> Enum.find(fn val -> val.price == order["price"] end)
-
+  defp sell(state, order) do
+    order_found = state.sell |> find_order_by_price(order)
+    order_duplicate_price_found = state.buy |> find_order_by_price(order)
     order_ready_sell_found = state.sell |> Enum.find(fn val -> val.price <= order["price"] end)
 
     {ok, list} =
@@ -75,13 +65,7 @@ defmodule OrderBook do
           {true, [new_order_item | state.buy] |> Enum.uniq_by(fn o -> o.price end)}
 
         order_found == nil and order_duplicate_price_found == nil and
-          order_ready_sell_found == nil and
-            Enum.empty?(state.buy) ->
-          {true, [%OrderItem{price: order["price"], volume: order["amount"]} | state.buy]}
-
-        order_found == nil and order_duplicate_price_found == nil and
-          order_ready_sell_found == nil and
-            !Enum.empty?(state.buy) ->
+          order_ready_sell_found == nil and (Enum.empty?(state.buy) or !Enum.empty?(state.buy)) ->
           {true, [%OrderItem{price: order["price"], volume: order["amount"]} | state.buy]}
 
         true ->
@@ -91,7 +75,7 @@ defmodule OrderBook do
     if ok == true do
       %OrderBook{state | buy: list |> Enum.sort_by(fn o -> o.price end, :desc)}
     else
-      calculate_volume = ((order_ready_sell_found.volume - order["amount"]) / 1) |> Float.round(3)
+      calculate_volume = calculate_volume_by_order_matching(order_ready_sell_found, order)
 
       if calculate_volume <= 0 do
         new_state = %OrderBook{
@@ -119,15 +103,32 @@ defmodule OrderBook do
     end
   end
 
+  def trigger(state, order) do
+    cond do
+      order["command"] == "sell" -> buy(state, order)
+      order["command"] == "buy" -> sell(state, order)
+    end
+  end
+
   def main(input) do
-    {_, inputs} = Poison.decode(input)
+    case Poison.decode(input, as: %OrderRequest{orders: []}) do
+      {:ok, inputs} ->
+        case Enum.empty?(inputs.orders) do
+          true ->
+            {:error, "invalid input json"}
 
-    current_list =
-      Enum.reduce(inputs["orders"], %OrderBook{buy: [], sell: []}, fn order, acc ->
-        result = trigger(acc, order)
-        %OrderBook{acc | buy: result.buy, sell: result.sell}
-      end)
+          false ->
+            result =
+              Enum.reduce(inputs.orders, %OrderBook{buy: [], sell: []}, fn order, acc ->
+                result = trigger(acc, order)
+                %OrderBook{acc | buy: result.buy, sell: result.sell}
+              end)
 
-    current_list
+            {:ok, result}
+        end
+
+      {:error, _} ->
+        {:error, "invalid input json"}
+    end
   end
 end
