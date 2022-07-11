@@ -45,8 +45,6 @@ defmodule OrderBook do
               |> Enum.uniq_by(fn o -> o.price end)
         }
 
-        IO.puts("ok before recursive 🔥")
-
         if calculate_volume == 0 do
           new_state
         else
@@ -103,8 +101,6 @@ defmodule OrderBook do
               |> Enum.filter(fn o -> o.price != order_ready_sell_found.price end)
               |> Enum.uniq_by(fn o -> o.price end)
         }
-
-        IO.puts("ok before recursive 🔥 #{calculate_volume}")
 
         if calculate_volume == 0 do
           new_state
