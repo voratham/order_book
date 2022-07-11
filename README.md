@@ -1,6 +1,35 @@
 # OrderBook
 
-**TODO: Add description**
+**This is challenge from zipmex**
+
+```sh
+mix deps.get
+make test-coverage # generate coverage
+iex -S mix
+```
+
+**Example run on iex**
+```elixir
+OrderBook.main('{"orders":[{"command":"sell","price":100.003,"amount":2.4},{"command":"buy","price":90.394,"amount":3.445},{"command":"buy","price":89.394,"amount":4.3},{"command":"sell","price":100.013,"amount":2.2},{"command":"buy","price":90.15,"amount":1.305},{"command":"buy","price":90.394,"amount":1.0},{"command":"sell","price":90.394,"amount":2.2},{"command":"sell","price":90.15,"amount":3.4},{"command":"buy","price":91.33,"amount":1.8},{"command":"buy","price":100.01,"amount":4.0},{"command":"sell","price":100.15,"amount":3.8}]}')
+
+{:ok,
+ %OrderBook.Entities.OrderBook{
+   buy: [
+     %OrderBook.Entities.OrderItem{price: 100.01, volume: 1.6},
+     %OrderBook.Entities.OrderItem{price: 91.33, volume: 1.8},
+     %OrderBook.Entities.OrderItem{price: 90.15, volume: 0.15},
+     %OrderBook.Entities.OrderItem{price: 89.394, volume: 4.3}
+   ],
+   sell: [
+     %OrderBook.Entities.OrderItem{price: 100.013, volume: 2.2},
+     %OrderBook.Entities.OrderItem{price: 100.15, volume: 3.8}
+   ]
+ }}
+
+OrderBook.main('')                                                              {:error, "invalid input json"}
+
+```
+
 
 ## Installation
 
@@ -14,8 +43,3 @@ def deps do
   ]
 end
 ```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/order_book>.
-
