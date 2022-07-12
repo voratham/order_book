@@ -25,9 +25,12 @@ OrderBook.main('{"orders":[{"command":"sell","price":100.003,"amount":2.4},{"com
      %OrderBook.Entities.OrderItem{price: 100.15, volume: 3.8}
    ]
  }}
+```
 
-OrderBook.main('')                                                              {:error, "invalid input json"}
-
+**In case error**
+```elixir
+OrderBook.main('')
+{:error, "invalid input json"}
 ```
 
 
